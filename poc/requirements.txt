@@ -1,0 +1,18 @@
+# POC 依赖（纯 CPU，无 torch）
+# 安装：pip install -r requirements.txt
+#
+# 版本说明（实测记录 2026-11-18，Windows + Python 3.13）：
+#   - numpy 1.26.x 在 Python 3.13 上无 wheel，会退化为源码编译并失败 → 必须 >=2.1
+#   - opencv-contrib-python 实测 5.1.0 可用，dnn_superres 仍在 contrib 包中
+#   - 生产环境请锁定精确版本并归档 wheel
+
+# 推理与图像处理
+onnxruntime>=1.17
+opencv-contrib-python>=4.10
+numpy>=2.1
+Pillow>=10.4
+
+# 本地 Web 测试台（server.py + static/index.html）
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9

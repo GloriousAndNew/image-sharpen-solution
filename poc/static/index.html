@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>图像清晰化 · 本地测试台</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111823; --panel-2:#0e141d; --line:#1e2936;
+    --txt:#e6edf5; --txt-dim:#8798ab; --txt-faint:#5b6b7d;
+    --acc:#5eead4; --acc-2:#818cf8; --warn:#fbbf24; --err:#f87171;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 520px at 12% -10%, rgba(129,140,248,.13), transparent 60%),
+      radial-gradient(900px 420px at 92% 0%, rgba(94,234,212,.10), transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font:14px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    min-height:100vh; padding:28px 20px 64px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:22px}
+  h1{font-size:22px;font-weight:650;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(96deg,var(--acc),var(--acc-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--txt-dim);font-size:13px;max-width:560px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--line);font-size:12px;color:var(--txt-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--txt-faint)}
+  .dot.ok{background:var(--acc);box-shadow:0 0 8px rgba(94,234,212,.7)}
+  .dot.off{background:var(--warn)}
+
+  .banner{
+    display:none;align-items:center;gap:10px;margin-bottom:18px;padding:11px 14px;
+    background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.28);
+    border-radius:10px;color:#f3d489;font-size:13px;
+  }
+  .banner.show{display:flex}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h2{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:12px}
+
+  /* ---------- dropzone ---------- */
+  .drop{
+    position:relative;border:1.5px dashed #26364a;border-radius:12px;min-height:250px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    padding:22px;text-align:center;cursor:pointer;transition:.18s;background:#0c121a;overflow:hidden;
+  }
+  .drop:hover{border-color:#3a5470;background:#0f1620}
+  .drop.drag{border-color:var(--acc);background:rgba(94,234,212,.06)}
+  .drop img{max-width:100%;max-height:300px;border-radius:8px;display:block}
+  .drop.has-image{border-style:solid;border-color:#223044;padding:10px}
+  .drop-icon{width:38px;height:38px;opacity:.55}
+  .drop-title{font-size:14px;color:var(--txt)}
+  .drop-hint{font-size:12px;color:var(--txt-faint)}
+
+  /* ---------- controls ---------- */
+  .row{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:132px}
+  .field label{font-size:12px;color:var(--txt-faint)}
+  .seg{display:flex;background:#0b1119;border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--txt-dim);padding:6px 0;border-radius:7px;
+    font:inherit;font-size:13px;cursor:pointer;transition:.15s;
+  }
+  .seg button.on{background:linear-gradient(180deg,#1d2b3d,#17222f);color:var(--txt);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  select,input[type=number]{
+    background:#0b1119;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+    padding:8px 10px;font:inherit;font-size:13px;outline:none;
+  }
+  select:focus,input:focus{border-color:#33506e}
+  .switch{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:13px;color:var(--txt-dim);cursor:pointer;user-select:none}
+  .switch input{appearance:none;width:36px;height:20px;border-radius:999px;background:#1b2735;position:relative;cursor:pointer;transition:.18s;flex:none}
+  .switch input:checked{background:linear-gradient(90deg,var(--acc),var(--acc-2))}
+  .switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#0a0e14;transition:.18s}
+  .switch input:checked::after{transform:translateX(16px)}
+
+  .btn{
+    width:100%;margin-top:16px;padding:11px;border:0;border-radius:10px;font:inherit;font-size:14px;
+    font-weight:600;color:#04120f;cursor:pointer;transition:.18s;
+    background:linear-gradient(96deg,var(--acc),#7dd3fc);letter-spacing:.01em;
+  }
+  .btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt-dim);font-weight:500}
+
+  /* ---------- compare ---------- */
+  .empty{
+    min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;color:var(--txt-faint);font-size:13px;text-align:center;border:1px solid var(--line);
+    border-radius:12px;background:#0c121a;
+  }
+  .compare{position:relative;border-radius:12px;overflow:hidden;background:#0c121a;border:1px solid var(--line)}
+  .compare img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+  .compare .after{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--pos,50%)) 0 0)}
+  .handle{
+    position:absolute;top:0;bottom:0;left:var(--pos,50%);width:2px;background:rgba(255,255,255,.85);
+    cursor:ew-resize;transform:translateX(-1px);
+  }
+  .handle::after{
+    content:"";position:absolute;top:50%;left:50%;width:32px;height:32px;transform:translate(-50%,-50%);
+    border-radius:50%;background:rgba(10,14,20,.82);border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 4px 14px rgba(0,0,0,.5);
+  }
+  .tag{position:absolute;top:10px;padding:3px 9px;border-radius:6px;font-size:11px;background:rgba(10,14,20,.78);color:#cfe0f0;letter-spacing:.04em}
+  .tag.l{left:10px} .tag.r{right:10px}
+
+  /* ---------- meta ---------- */
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;
+    background:#0d141d;border:1px solid var(--line);color:var(--txt-dim);font-variant-numeric:tabular-nums;
+  }
+  .chip b{color:var(--txt);font-weight:600}
+  .chip.acc{border-color:rgba(94,234,212,.35);color:#a7f3e4}
+  .chip.warn{border-color:rgba(251,191,36,.35);color:#f8d68a}
+  .chip.err{border-color:rgba(248,113,113,.35);color:#fca5a5}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-top:14px}
+  .metric{background:#0d141d;border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+  .metric .k{font-size:11px;color:var(--txt-faint);letter-spacing:.02em}
+  .metric .v{font-size:14px;font-variant-numeric:tabular-nums;margin-top:2px}
+
+  .logs{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+  .log{font-size:12px;color:#f8d68a;background:rgba(251,191,36,.06);border-left:2px solid var(--warn);padding:6px 10px;border-radius:0 6px 6px 0}
+  .log.err{color:#fca5a5;background:rgba(248,113,113,.06);border-left-color:var(--err)}
+
+  .spinner{width:15px;height:15px;border:2px solid rgba(0,0,0,.25);border-top-color:#04120f;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:7px;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  footer{margin-top:26px;color:var(--txt-faint);font-size:12px;text-align:center}
+  footer code{color:var(--txt-dim);background:#0d141d;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>图像清晰化 · <span>本地测试台</span></h1>
+      <div class="sub">上传模糊截图，查看判定结果、模型链路与耗时。前后对比可拖动中间竖线。</div>
+    </div>
+    <div class="pills" id="pills"></div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="grid">
+    <!-- 左：输入 + 参数 -->
+    <section class="card">
+      <h2>输入</h2>
+      <div class="drop" id="drop">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+        </svg>
+        <div class="drop-title">拖拽图片到此处，或点击选择</div>
+        <div class="drop-hint">支持 PNG / JPG / WebP，≤ 25MB，也可直接 Ctrl+V 粘贴</div>
+        <input type="file" id="file" accept="image/*" hidden />
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>放大倍数</label>
+          <div class="seg" id="scaleSeg">
+            <button data-v="1">1×</button>
+            <button data-v="2" class="on">2×</button>
+            <button data-v="4">4×</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>档位</label>
+          <select id="tier">
+            <option value="interactive">interactive（同步）</option>
+            <option value="offline">offline（当前同链路）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>耗时预算 (ms)</label>
+          <input type="number" id="budget" value="3000" min="200" step="200" />
+        </div>
+      </div>
+
+      <label class="switch">
+        <input type="checkbox" id="gen" />
+        <span>允许生成式先验（仅纯照片；文字/UI 会被自动拦截）</span>
+      </label>
+
+      <button class="btn" id="run" disabled>开始处理</button>
+      <button class="btn ghost" id="reset" style="display:none">换一张</button>
+    </section>
+
+    <!-- 右：结果 -->
+    <section class="card">
+      <h2>结果</h2>
+      <div id="result">
+        <div class="empty">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 3 3 3-2 5 4"/>
+          </svg>
+          <div>还没有结果</div>
+          <div style="font-size:12px">左侧选择图片后点击「开始处理」</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    纯 CPU 本地推理 · 不联网 · 输出保存在 <code>poc/out/</code> ·
+    接口文档 <code>/api/docs</code>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const drop = $("drop"), fileInput = $("file"), runBtn = $("run"), resetBtn = $("reset");
+  const resultBox = $("result");
+  let currentFile = null, scale = 2, objectUrl = null;
+
+  /* ---------- 环境探测 ---------- */
+  fetch("/api/health").then(r => r.json()).then(h => {
+    const pills = $("pills");
+    const item = (ok, label, val) =>
+      `<span class="pill"><span class="dot ${ok ? "ok" : "off"}"></span>${label} ${val}</span>`;
+    pills.innerHTML =
+      item(!!h.onnxruntime, "onnxruntime", h.onnxruntime || "未安装") +
+      item(h.onnx_model, "x4v3 权重", h.onnx_model ? "已就绪" : "缺失") +
+      item(h.dnn_superres, "dnn_superres", h.dnn_superres ? "可用" : "不可用") +
+      item(true, "OpenCV", h.opencv) +
+      item(true, "CPU", h.cpu_count + " 核");
+
+    const banner = $("banner");
+    if (!h.onnx_model) {
+      banner.className = "banner show";
+      banner.innerHTML =
+        `<span>⚠️</span><span>未检测到 <b>realesr-general-x4v3.onnx</b>，当前会走兜底链路（OpenCV / Lanczos）。` +
+        `把 4.6MB 权重放进 <code>poc/models/</code> 后刷新页面即可启用主链路。</span>`;
+    }
+  }).catch(() => {});
+
+  /* ---------- 选择文件 ---------- */
+  function setFile(f) {
+    if (!f || !f.type.startsWith("image/")) return;
+    currentFile = f;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(f);
+
+    drop.classList.add("has-image");
+    drop.innerHTML = `<img src="${objectUrl}" alt="preview" />
+      <div class="drop-hint" style="margin-top:8px">${f.name} · ${(f.size / 1024).toFixed(0)} KB · 点击可更换</div>`;
+    runBtn.disabled = false;
+    resetBtn.style.display = "block";
+    resultBox.innerHTML = `<div class="empty"><div>已就绪，点击「开始处理」</div></div>`;
+  }
+
+  drop.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => setFile(e.target.files[0]));
+  ["dragenter", "dragover"].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+  window.addEventListener("paste", (e) => {
+    const it = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+    if (it) setFile(it.getAsFile());
+  });
+
+  /* ---------- 参数 ---------- */
+  $("scaleSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    [...$("scaleSeg").children].forEach((x) => x.classList.toggle("on", x === b));
+    scale = Number(b.dataset.v);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    currentFile = null;
+    fileInput.value = "";
+    runBtn.disabled = true;
+    resetBtn.style.display = "none";
+    drop.classList.remove("has-image");
+    drop.innerHTML = `
+      <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+      </svg>
+      <div class="drop-title">拖拽图片到此处，或点击选择</div>
+      <div class="drop-hint">支持 PNG / JPG / WebP，≤ 25MB，也可直接 Ctrl+V 粘贴</div>`;
+    resultBox.innerHTML = `<div class="empty"><div>还没有结果</div><div style="font-size:12px">左侧选择图片后点击「开始处理」</div></div>`;
+  });
+
+  /* ---------- 提交 ---------- */
+  runBtn.addEventListener("click", async () => {
+    if (!currentFile) return;
+    runBtn.disabled = true;
+    runBtn.innerHTML = `<span class="spinner"></span>处理中…`;
+    const fd = new FormData();
+    fd.append("file", currentFile);
+    fd.append("scale", scale);
+    fd.append("tier", $("tier").value);
+    fd.append("allow_generative_prior", $("gen").checked);
+    fd.append("max_latency_ms", $("budget").value || 3000);
+
+    try {
+      const res = await fetch("/api/sharpen", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      render(data);
+    } catch (err) {
+      resultBox.innerHTML = `<div class="empty" style="color:#fca5a5">处理失败：${err.message}</div>`;
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = "开始处理";
+    }
+  });
+
+  /* ---------- 渲染结果 ---------- */
+  function render(d) {
+    const warnSet = new Set(d.warnings || []);
+    const degraded = d.degradation_type !== "none";
+
+    const chips = [
+      `<span class="chip acc">退化 <b>${d.degradation_type}</b></span>`,
+      `<span class="chip">内容 <b>${d.content_type}</b></span>`,
+      `<span class="chip">档位 <b>${d.tier_used}</b></span>`,
+      `<span class="chip">耗时 <b>${d.elapsed_ms} ms</b></span>`,
+      `<span class="chip">链路 <b>${(d.model_chain || []).join(" → ") || "—"}</b></span>`,
+      `<span class="chip">输入 <b>${d.source_size[0]}×${d.source_size[1]}</b></span>`,
+    ].join("");
+
+    const metrics = Object.entries(d.metrics || {}).map(
+      ([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`
+    ).join("");
+
+    const logs = (d.warnings || []).map(
+      (w) => `<div class="log ${w.startsWith("backend_failed") || w.startsWith("decode") ? "err" : ""}">${w}</div>`
+    ).join("");
+
+    const compare = d.output_url
+      ? `<div class="compare" id="cmp" style="--pos:50%">
+           <img src="${d.source_url}" alt="原图" />
+           <img class="after" src="${d.output_url}" alt="结果" />
+           <span class="tag l">原图</span><span class="tag r">处理后</span>
+           <div class="handle" id="handle"></div>
+         </div>`
+      : `<div class="empty" style="color:#fca5a5">未产出图像</div>`;
+
+    resultBox.innerHTML = `
+      ${compare}
+      <div class="meta">${chips}</div>
+      ${degraded ? "" : `<div class="logs"><div class="log">图像已足够清晰，直接返回原图（未做处理）</div></div>`}
+      ${logs ? `<div class="logs">${logs}</div>` : ""}
+      ${metrics ? `<h2 style="margin-top:18px">分析指标</h2><div class="metrics">${metrics}</div>` : ""}
+      ${d.output_url ? `<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:16px" href="${d.output_url}" download>下载结果</a>` : ""}
+    `;
+
+    initSlider();
+  }
+
+  function initSlider() {
+    const cmp = $("cmp"), handle = $("handle");
+    if (!cmp || !handle) return;
+    let dragging = false;
+    const move = (clientX) => {
+      const r = cmp.getBoundingClientRect();
+      const pos = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+      cmp.style.setProperty("--pos", pos + "%");
+    };
+    handle.addEventListener("pointerdown", (e) => { dragging = true; handle.setPointerCapture(e.pointerId); });
+    window.addEventListener("pointerup", () => { dragging = false; });
+    window.addEventListener("pointermove", (e) => { if (dragging) move(e.clientX); });
+    cmp.addEventListener("click", (e) => { if (e.target === handle) return; move(e.clientX); });
+  }
+})();
+</script>
+</body>
+</html>
